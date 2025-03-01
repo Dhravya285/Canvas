@@ -4,6 +4,7 @@ import bodyParser from 'body-parser'
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import SignUp from './routes/signup.js' 
+import {WebSocketServer} from 'ws'
 
 dotenv.config({ path: '.env.local' });
 
@@ -28,6 +29,23 @@ mongoose.connect(mongourl)
 
 app.use('/api/v1/auth/signup', SignUp)    
 
-app.listen(3000, () => {
+const server = app.listen(3000, () => {
     console.log('server Running on port 3000');
-})
+});
+
+const wss = new WebSocketServer({ server });
+
+wss.on("connection", (ws) => {
+  console.log("New client connected");
+
+  ws.on("message", (message) => {
+    // Broadcast to all clients
+    wss.clients.forEach((client) => {
+      if (client !== ws && client.readyState === 1) {
+        client.send(message);
+      }
+    });
+  });
+
+  ws.on("close", () => console.log("Client disconnected"));
+});
